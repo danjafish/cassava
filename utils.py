@@ -13,3 +13,6 @@ def get_img(path):
     im_rgb = im_bgr[:, :, ::-1]
     #print(im_rgb)
     return im_rgb
+
+def hub_test():
+    pass
