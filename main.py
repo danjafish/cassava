@@ -40,6 +40,7 @@ CFG = {
     'test_fold': 0,
     'fp16':True,
     'soft_labels_file': '/home/samenko/Cassava/tmp/soft_labels.csv',
+    'train_file': "/home/data/Cassava/train.csv",
     'save_model': False
 }
 
@@ -118,7 +119,7 @@ def train_crossval(data):
 
 def train_one_model(data):
     device = torch.device('cuda')
-    soft_labels = pd.read_csv('./tmp/soft_labels.csv')
+    soft_labels = pd.read_csv(CFG['soft_labels_file'])
     soft_labels = soft_labels.dropna()
     soft_labels.reset_index(inplace=True, drop=True)
     train_data = soft_labels[(soft_labels.fold != CFG['test_fold'])].reset_index(drop=True)
@@ -167,8 +168,8 @@ def train_one_model(data):
 def main():
     seed_everything(2021)
 
-    data = pd.read_csv(CFG['soft_labels_file'])
-    print(data.shape)
+    data = pd.read_csv(CFG['train_file'])
+    print("train shape: "data.shape)
 
     data['fold'] = 0
     strkf = StratifiedKFold(n_splits=5)
