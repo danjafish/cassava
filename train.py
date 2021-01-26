@@ -2,29 +2,31 @@ import torch
 import time
 from tqdm import tqdm
 import numpy as np
+import apex
 device = torch.device('cuda')
 
 class Trainer:
-    def __init__(self, CFG, scheduler):
+    def __init__(self, CFG, scheduler = None):
         self.CFG = CFG
         self.scheduler = scheduler
 
-    def train_one_epoch(self, model, optim, train_loader, loss_fn, epoch):
+    def train_one_epoch(self, model, optim, train_loader, loss_fn, epoch, soft = False):
         model = model.train();
-        t = time.time()
         running_loss = None
         preds_all = []
         targets_all = []
-        loss_sum = 0
-        sample_num = 0
         pbar = tqdm(enumerate(train_loader), total=len(train_loader), position=0, leave=True)
         for step, (x, y_true) in pbar:
             x = x.to(device).float()
-            y_true = y_true.to(device).long()
+            y_true = y_true.to(device)
             y_pred = model(x)
             l = loss_fn(y_pred, y_true)
             optim.zero_grad()
-            l.backward()
+            if self.CFG['fp16']:
+                with apex.amp.scale_loss(l, optim) as scaled_loss:
+                    scaled_loss.backward()
+            else:
+                l.backward()
             optim.step()
             preds_all += [torch.argmax(y_pred, 1).detach().cpu().numpy()]
             targets_all += [y_true.detach().cpu().numpy()]
@@ -42,13 +44,11 @@ class Trainer:
         preds_all = np.concatenate(preds_all)
         targets_all = np.concatenate(targets_all)
         print("Target acc = ", (preds_all == targets_all).mean())
-        with open(f"baseline.log", 'a+') as logger:
+        with open(self.CFG["log_file"], 'a+') as logger:
             logger.write(f"Epoch # {epoch}, train acc = {(preds_all == targets_all).mean()}, ")
 
 
-    def valid_one_epoch(model, optim, val_loader, loss_fn, epoch, CFG):
-        preds_all = []
-        t = time.time()
+    def valid_one_epoch(self, model, optim, val_loader, loss_fn, epoch, CFG):
         loss_sum = 0
         sample_num = 0
         preds_all = []
@@ -73,6 +73,6 @@ class Trainer:
         preds_all = np.concatenate(preds_all)
         targets_all = np.concatenate(targets_all)
         print('validation multi-class accuracy = {:.4f}'.format((preds_all == targets_all).mean()))
-        with open(f"baseline.log", 'a+') as logger:
+        with open(self.CFG['log_file'], 'a+') as logger:
             logger.write(f"val acc = {(preds_all == targets_all).mean()}\n")
         return (preds_all == targets_all).mean(), loss_sum / sample_num
