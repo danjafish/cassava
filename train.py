@@ -9,7 +9,7 @@ class Trainer:
         self.CFG = CFG
         self.scheduler = scheduler
 
-    def train_one_epoch(self, model, optim, train_loader, loss_fn, epoch, soft = False):
+    def train_one_epoch(self, model, optim, train_loader, loss_fn, epoch):
         model = model.train();
         running_loss = None
         preds_all = []
@@ -47,7 +47,7 @@ class Trainer:
             logger.write(f"Epoch # {epoch}, train acc = {(preds_all == targets_all).mean()}, ")
 
 
-    def valid_one_epoch(self, model, optim, val_loader, loss_fn, epoch):
+    def valid_one_epoch(self, model, val_loader, loss_fn, epoch):
         loss_sum = 0
         sample_num = 0
         preds_all = []

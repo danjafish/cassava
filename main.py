@@ -13,14 +13,12 @@ from albumentations import (
     IAASharpen, IAAEmboss, RandomBrightnessContrast, Flip, OneOf, Compose, Normalize, Cutout, CoarseDropout, ShiftScaleRotate, CenterCrop, Resize
 )
 from albumentations.pytorch import ToTensorV2
-
 import apex
 from utils import seed_everything
 from datasets import CassavaDataset
 from train import Trainer
 from model import CassvaImgClassifier
 from loss_function import CrossEntropyLossOneHot
-
 
 CFG = {
     'fold_num': 0,
@@ -41,7 +39,8 @@ CFG = {
     'log_file': "/home/samenko/Cassava/logs/tmp.log",
     'test_fold': 0,
     'fp16':True,
-    'soft_labels_file': '/home/samenko/Cassava/tmp/soft_labels.csv'
+    'soft_labels_file': '/home/samenko/Cassava/tmp/soft_labels.csv',
+    'save_model': False
 }
 
 TRAIN_AUGS = Compose([
@@ -110,10 +109,10 @@ def train_crossval(data):
             print(f"epoch number {epoch}, lr = {optimizer.param_groups[0]['lr']}")
             trainer.train_one_epoch(model, optimizer, train_loader, loss_tr, epoch)
             val_acc, val_loss = trainer.valid_one_epoch(model, optimizer, val_loader, loss_fn, epoch)
-
-            torch.save(model.state_dict(),
-                       '/home/samenko/Cassava/output/{}_dev_fold_{}_test_fold_{}_epoch_{}_val_loss_{:.4f}_val_acc_{:.4f}'.format(
-                           CFG['model_arch'], dev_fold, CFG['test_fold'], epoch, val_acc, val_loss))
+            if CFG['save_model']:
+                torch.save(model.state_dict(),
+                           '/home/samenko/Cassava/output/{}_dev_fold_{}_test_fold_{}_epoch_{}_val_loss_{:.4f}_val_acc_{:.4f}'
+                           .format( CFG['model_arch'], dev_fold, CFG['test_fold'], epoch, val_acc, val_loss))
 
         torch.cuda.empty_cache()
 
@@ -147,7 +146,7 @@ def train_one_model(data):
                                                                      eta_min=1e-6, last_epoch=-1)
 
     trainer = Trainer(CFG, scheduler)
-    loss_tr = loss_fn = CrossEntropyLossOneHot().to(device)
+    loss_tr = CrossEntropyLossOneHot().to(device)
     loss_val = nn.CrossEntropyLoss().to(device)
     if CFG['fp16']:
         model, optimizer = apex.amp.initialize(
@@ -158,13 +157,12 @@ def train_one_model(data):
         print(f"epoch number {epoch}, lr = {optimizer.param_groups[0]['lr']}")
         trainer.train_one_epoch(model, optimizer, train_loader, loss_tr, epoch)
         val_acc, val_loss = trainer.valid_one_epoch(model, optimizer, val_loader, loss_val, epoch)
-        # torch.save(model.state_dict(),'./output/{}_soft_dev_fold_{}_test_fold_{}_epoch_{}_val_loss_{:.4f}_val_acc_{:.4f}'.format(CFG['model_arch'], dev_fold, test_fold, epoch, val_acc, val_loss))
+        if CFG['save_model']:
+            torch.save(model.state_dict(),'./output/{}_test_fold_{}_epoch_{}_val_loss_{:.4f}_val_acc_{:.4f}'
+                       .format(CFG['model_arch'], CFG['test_fold'], epoch, val_acc, val_loss))
 
     # del model, optimizer, train_loader, val_loader, scaler, scheduler
     torch.cuda.empty_cache()
-
-
-
 
 def main():
     seed_everything(2021)
@@ -180,9 +178,6 @@ def main():
         data.loc[data.index.isin(test_index), 'fold'] = f
         f = f + 1
     train_crossval(data)
-
-
-
 
 
 if __name__ == "__main__":
