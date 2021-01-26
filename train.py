@@ -47,7 +47,7 @@ class Trainer:
             logger.write(f"Epoch # {epoch}, train acc = {(preds_all == targets_all).mean()}, ")
 
 
-    def valid_one_epoch(self, model, optim, val_loader, loss_fn, epoch, CFG):
+    def valid_one_epoch(self, model, optim, val_loader, loss_fn, epoch):
         loss_sum = 0
         sample_num = 0
         preds_all = []
@@ -65,7 +65,7 @@ class Trainer:
                 loss_sum += l.item() * y_true.shape[0]
                 sample_num += y_true.shape[0]
 
-            if ((step + 1) % CFG['verbose_step'] == 0) or ((step + 1) == len(val_loader)):
+            if ((step + 1) % self.CFG['verbose_step'] == 0) or ((step + 1) == len(val_loader)):
                 description = f'val epoch {epoch} loss: {loss_sum / sample_num:.4f}'
                 pbar.set_description(description)
 

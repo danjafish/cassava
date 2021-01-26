@@ -14,7 +14,7 @@ from albumentations import (
 )
 from albumentations.pytorch import ToTensorV2
 
-
+import apex
 from utils import seed_everything
 from datasets import CassavaDataset
 from train import Trainer
@@ -38,8 +38,10 @@ CFG = {
     'accum_iter': 2,  # suppoprt to do batch accumulation for backprop with effectively larger batch size
     'verbose_step': 1,
     'device': 'cuda:0',
-    'log_file': "distil_03_07_cp.log",
+    'log_file': "/home/samenko/Cassava/logs/tmp.log",
     'test_fold': 0,
+    'fp16':True,
+    'soft_labels_file': '/home/samenko/Cassava/tmp/soft_labels.csv'
 }
 
 TRAIN_AUGS = Compose([
@@ -88,7 +90,7 @@ def train_crossval(data):
             shuffle=False,
             pin_memory=False)
 
-        model = CassvaImgClassifier('tf_efficientnet_b4_ns', data.label.nunique(), pretrained=True).to(device)
+        model = CassvaImgClassifier(CFG['model_arch'], data.label.nunique(), pretrained=True).to(device)
 
         optimizer = torch.optim.Adam(model.parameters(), lr=CFG['lr'], weight_decay=CFG['weight_decay'])
         scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer,
@@ -122,8 +124,8 @@ def train_one_model(data):
     soft_labels.reset_index(inplace=True, drop=True)
     train_data = soft_labels[(soft_labels.fold != CFG['test_fold'])].reset_index(drop=True)
     val_data = data[data.fold == CFG['test_fold']].reset_index(drop=True)
-    train_ds = CassavaDataset(train_data, mode='train', soft_labels=True)
-    valid_ds = CassavaDataset(val_data, mode='val', soft_labels=False)
+    train_ds = CassavaDataset(train_data,TRAIN_AUGS, TEST_AUGS, mode='train' ,soft=True)
+    valid_ds = CassavaDataset(val_data, TRAIN_AUGS, TEST_AUGS, mode='val', soft=False)
 
     train_loader = torch.utils.data.DataLoader(
         train_ds,
@@ -167,7 +169,7 @@ def train_one_model(data):
 def main():
     seed_everything(2021)
 
-    data = pd.read_csv('/home/data/Cassava/train.csv')
+    data = pd.read_csv(CFG['soft_labels_file'])
     print(data.shape)
 
     data['fold'] = 0

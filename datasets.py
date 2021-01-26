@@ -34,7 +34,7 @@ class CassavaDataset(Dataset):
             if self.soft:
                 label = self.to_one_hot(label)
                 soft_labels = row.values[0][3:]
-                label = (label * 0.7).astype(float) + (soft_labels * 0.3).astype(float)
+                label = (label * 0.7).astype(np.float16) + (soft_labels * 0.3).astype(np.float16)
             img = self.TRAIN_AUGS(image=img)['image']
             # img = np.moveaxis(img, 2, 0)
             return img, label
@@ -42,8 +42,8 @@ class CassavaDataset(Dataset):
             label = row.label.values[0]
             if self.soft:
                 soft_labels = row.values[0][3:]
-                label = (label * 0.7).astype(float) + (soft_labels * 0.3).astype(float)
-            img = self.VAL_AUGS(image=img)['image']
+                label = (label * 0.7).astype(np.float16) + (soft_labels * 0.3).astype(np.float16)
+            img = self.TEST_AUGS(image=img)['image']
             return img, label
         elif self.mode == 'test':
             img = self.TEST_AUGS(image=img)['image']
