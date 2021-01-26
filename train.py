@@ -1,5 +1,4 @@
 import torch
-import time
 from tqdm import tqdm
 import numpy as np
 import apex
