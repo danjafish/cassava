@@ -169,7 +169,7 @@ def main():
     seed_everything(2021)
 
     data = pd.read_csv(CFG['train_file'])
-    print("train shape: "data.shape)
+    print("train shape: ", data.shape)
 
     data['fold'] = 0
     strkf = StratifiedKFold(n_splits=5)
