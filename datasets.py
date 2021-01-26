@@ -45,10 +45,6 @@ class CassavaDataset(Dataset):
                 label = (label * 0.7).astype(float) + (soft_labels * 0.3).astype(float)
             img = self.VAL_AUGS(image=img)['image']
             return img, label
-        elif self.mode == 'val_test':
-            label = row.label.values[0]
-            img = self.VAL_AUGS(image=img)['image']
-            return img, label
         elif self.mode == 'test':
             img = self.TEST_AUGS(image=img)['image']
             return img
