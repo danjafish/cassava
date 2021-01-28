@@ -117,7 +117,7 @@ def train_crossval(data):
 
         torch.cuda.empty_cache()
 
-def train_one_model(data):
+def train_one_model(data, soft=False):
     device = torch.device('cuda')
     soft_labels = pd.read_csv(CFG['soft_labels_file'])
     soft_labels = soft_labels.dropna()
@@ -156,8 +156,8 @@ def train_one_model(data):
             opt_level='O1')
     for epoch in range(CFG['epochs']):
         print(f"epoch number {epoch}, lr = {optimizer.param_groups[0]['lr']}")
-        trainer.train_one_epoch(model, optimizer, train_loader, loss_tr, epoch)
-        val_acc, val_loss = trainer.valid_one_epoch(model, optimizer, val_loader, loss_val, epoch)
+        trainer.train_one_epoch(model, optimizer, train_loader, loss_tr, epoch,soft)
+        val_acc, val_loss = trainer.valid_one_epoch(model, val_loader, loss_val, epoch)
         if CFG['save_model']:
             torch.save(model.state_dict(),'./output/{}_test_fold_{}_epoch_{}_val_loss_{:.4f}_val_acc_{:.4f}'
                        .format(CFG['model_arch'], CFG['test_fold'], epoch, val_acc, val_loss))
@@ -178,7 +178,7 @@ def main():
     for train_index, test_index in strkf.split(data.image_id, data.label):
         data.loc[data.index.isin(test_index), 'fold'] = f
         f = f + 1
-    train_crossval(data)
+    train_one_model(data,soft=True)
 
 
 if __name__ == "__main__":

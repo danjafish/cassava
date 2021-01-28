@@ -9,7 +9,7 @@ class Trainer:
         self.CFG = CFG
         self.scheduler = scheduler
 
-    def train_one_epoch(self, model, optim, train_loader, loss_fn, epoch):
+    def train_one_epoch(self, model, optim, train_loader, loss_fn, epoch, soft=False):
         model = model.train();
         running_loss = None
         preds_all = []
@@ -28,6 +28,8 @@ class Trainer:
                 l.backward()
             optim.step()
             preds_all += [torch.argmax(y_pred, 1).detach().cpu().numpy()]
+            if soft:
+                y_true = torch.argmax(y_true, 1)
             targets_all += [y_true.detach().cpu().numpy()]
             if running_loss is None:
                 running_loss = l.item()
