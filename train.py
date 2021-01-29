@@ -18,6 +18,8 @@ class Trainer:
         for step, (x, y_true) in pbar:
             x = x.to(device).float()
             y_true = y_true.to(device)
+            if not self.CFG['soft_labels_file']:
+                y_true = y_true.long()
             y_pred = model(x)
             l = loss_fn(y_pred, y_true)
             optim.zero_grad()
